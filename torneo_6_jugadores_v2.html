@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torneo de 6 Jugadores</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .panel {
+      max-width: 700px;
+      margin: 0 auto 35px;
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 14px;
+    }
+
+    .panel p {
+      color: #cbd5e1;
+      margin-top: 0;
+    }
+
+    .inputs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 9px;
+      border: 1px solid #475569;
+      background: #f8fafc;
+      font-size: 15px;
+    }
+
+    .botones {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      padding: 11px 18px;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #randomizar {
+      background: #22c55e;
+      color: #052e16;
+    }
+
+    #empezar {
+      background: #3b82f6;
+      color: white;
+    }
+
+    #reiniciar {
+      background: #ef4444;
+      color: white;
+    }
+
+    .torneo {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+      gap: 35px;
+      max-width: 1100px;
+      margin: auto;
+      overflow-x: auto;
+    }
+
+    .ronda {
+      min-width: 220px;
+    }
+
+    .ronda h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .partidos {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      gap: 30px;
+      min-height: 480px;
+    }
+
+    .partido {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .jugador {
+      padding: 14px;
+      cursor: pointer;
+      min-height: 48px;
+      transition: .2s;
+    }
+
+    .jugador + .jugador {
+      border-top: 1px solid #334155;
+    }
+
+    .jugador:hover:not(.vacio):not(.bye) {
+      background: #334155;
+    }
+
+    .vacio {
+      color: #64748b;
+      cursor: default;
+    }
+
+    .bye {
+      background: #312e81;
+      color: #c7d2fe;
+      cursor: default;
+    }
+
+    .ganador {
+      background: #16a34a !important;
+      color: white;
+      font-weight: bold;
+    }
+
+    .campeon {
+      max-width: 500px;
+      margin: 35px auto 0;
+      padding: 20px;
+      text-align: center;
+      background: #facc15;
+      color: #422006;
+      border-radius: 14px;
+      font-size: 22px;
+      font-weight: bold;
+      display: none;
+    }
+
+    .info {
+      text-align: center;
+      max-width: 700px;
+      margin: 20px auto 0;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    @media (max-width: 700px) {
+      .inputs {
+        grid-template-columns: 1fr;
+      }
+
+      .torneo {
+        grid-template-columns: repeat(3, 220px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🏆 Torneo de 6 Jugadores</h1>
+
+  <section class="panel">
+    <p>
+      Ingresa exactamente 6 jugadores. Al randomizar, 2 jugadores recibirán un pase directo a semifinales.
+    </p>
+
+    <div class="inputs">
+      <input id="j1" value="Jugador 1">
+      <input id="j2" value="Jugador 2">
+      <input id="j3" value="Jugador 3">
+      <input id="j4" value="Jugador 4">
+      <input id="j5" value="Jugador 5">
+      <input id="j6" value="Jugador 6">
+    </div>
+
+    <div class="botones">
+      <button id="randomizar">🎲 Randomizar torneo</button>
+      <button id="empezar">▶ Empezar sin randomizar</button>
+      <button id="reiniciar">↻ Reiniciar</button>
+    </div>
+  </section>
+
+  <div class="torneo">
+
+    <section class="ronda">
+      <h2>Primera ronda</h2>
+      <div class="partidos" id="primeraRonda"></div>
+    </section>
+
+    <section class="ronda">
+      <h2>Semifinales</h2>
+      <div class="partidos" id="semifinales"></div>
+    </section>
+
+    <section class="ronda">
+      <h2>Final</h2>
+      <div class="partidos" id="final"></div>
+    </section>
+
+  </div>
+
+  <div id="campeon" class="campeon"></div>
+
+  <p class="info">
+    Haz clic sobre un jugador para marcarlo como ganador y hacerlo avanzar.
+  </p>
+
+  <script>
+    const primeraRonda = document.getElementById("primeraRonda");
+    const semifinales = document.getElementById("semifinales");
+    const final = document.getElementById("final");
+    const campeon = document.getElementById("campeon");
+
+    let torneo = null;
+
+    document.getElementById("randomizar").addEventListener("click", () => crearTorneo(true));
+    document.getElementById("empezar").addEventListener("click", () => crearTorneo(false));
+    document.getElementById("reiniciar").addEventListener("click", reiniciar);
+
+    function mezclar(array) {
+      const copia = [...array];
+
+      for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copia[i], copia[j]] = [copia[j], copia[i]];
+      }
+
+      return copia;
+    }
+
+    function crearTorneo(randomizar = true) {
+      let jugadores = [];
+
+      for (let i = 1; i <= 6; i++) {
+        const nombre = document.getElementById("j" + i).value.trim();
+
+        if (nombre === "") {
+          alert("Debes completar los 6 jugadores.");
+          return;
+        }
+
+        jugadores.push(nombre);
+      }
+
+      if (randomizar) {
+        jugadores = mezclar(jugadores);
+      }
+
+      /*
+        Después de mezclar:
+        jugadores[0] y jugadores[1] pasan directo a semifinal.
+        Los otros cuatro juegan la primera ronda.
+      */
+
+      torneo = {
+        pases: [
+          jugadores[0],
+          jugadores[1]
+        ],
+
+        primera: [
+          [jugadores[2], jugadores[3]],
+          [jugadores[4], jugadores[5]]
+        ],
+
+        ganadoresPrimera: ["", ""],
+
+        semis: [
+          [jugadores[0], ""],
+          [jugadores[1], ""]
+        ],
+
+        ganadoresSemis: ["", ""],
+
+        final: ["", ""],
+
+        campeon: ""
+      };
+
+      dibujar();
+    }
+
+    function crearJugador(nombre, callback, claseExtra = "") {
+      const div = document.createElement("div");
+      div.className = "jugador " + claseExtra;
+      div.textContent = nombre || "Pendiente";
+
+      if (!nombre) {
+        div.classList.add("vacio");
+      } else if (callback) {
+        div.addEventListener("click", callback);
+      }
+
+      return div;
+    }
+
+    function crearPartido(jugadorA, jugadorB, callbackA, callbackB) {
+      const partido = document.createElement("div");
+      partido.className = "partido";
+
+      partido.appendChild(crearJugador(jugadorA, callbackA));
+      partido.appendChild(crearJugador(jugadorB, callbackB));
+
+      return partido;
+    }
+
+    function dibujar() {
+      primeraRonda.innerHTML = "";
+      semifinales.innerHTML = "";
+      final.innerHTML = "";
+
+      if (!torneo) return;
+
+      // Primera ronda
+      torneo.primera.forEach((partido, indicePartido) => {
+        const elemento = crearPartido(
+          partido[0],
+          partido[1],
+          () => ganarPrimera(indicePartido, partido[0]),
+          () => ganarPrimera(indicePartido, partido[1])
+        );
+
+        primeraRonda.appendChild(elemento);
+      });
+
+      // Mostrar los pases directos
+      const infoPases = document.createElement("div");
+      infoPases.className = "partido";
+
+      infoPases.appendChild(
+        crearJugador("Pase directo: " + torneo.pases[0], null, "bye")
+      );
+
+      infoPases.appendChild(
+        crearJugador("Pase directo: " + torneo.pases[1], null, "bye")
+      );
+
+      primeraRonda.appendChild(infoPases);
+
+      // Semifinales
+      torneo.semis.forEach((partido, indicePartido) => {
+        const elemento = crearPartido(
+          partido[0],
+          partido[1],
+          partido[0] ? () => ganarSemi(indicePartido, partido[0]) : null,
+          partido[1] ? () => ganarSemi(indicePartido, partido[1]) : null
+        );
+
+        semifinales.appendChild(elemento);
+      });
+
+      // Final
+      const finalElemento = crearPartido(
+        torneo.final[0],
+        torneo.final[1],
+        torneo.final[0] ? () => ganarFinal(torneo.final[0]) : null,
+        torneo.final[1] ? () => ganarFinal(torneo.final[1]) : null
+      );
+
+      final.appendChild(finalElemento);
+
+      if (torneo.campeon) {
+        campeon.textContent = "🏆 Campeón: " + torneo.campeon;
+        campeon.style.display = "block";
+      } else {
+        campeon.style.display = "none";
+      }
+    }
+
+    function ganarPrimera(indicePartido, jugador) {
+      torneo.ganadoresPrimera[indicePartido] = jugador;
+
+      // Ganador del primer partido va a la primera semi.
+      // Ganador del segundo partido va a la segunda semi.
+      torneo.semis[indicePartido][1] = jugador;
+
+      // Si se cambia el resultado, borrar lo que dependa de él.
+      torneo.ganadoresSemis[indicePartido] = "";
+      torneo.final[indicePartido] = "";
+      torneo.campeon = "";
+
+      dibujar();
+    }
+
+    function ganarSemi(indicePartido, jugador) {
+      if (!torneo.semis[indicePartido][1]) {
+        alert("Primero debes completar la primera ronda.");
+        return;
+      }
+
+      torneo.ganadoresSemis[indicePartido] = jugador;
+      torneo.final[indicePartido] = jugador;
+      torneo.campeon = "";
+
+      dibujar();
+    }
+
+    function ganarFinal(jugador) {
+      if (!torneo.final[0] || !torneo.final[1]) {
+        alert("Primero debes completar las semifinales.");
+        return;
+      }
+
+      torneo.campeon = jugador;
+      dibujar();
+    }
+
+    function reiniciar() {
+      torneo = null;
+      primeraRonda.innerHTML = "";
+      semifinales.innerHTML = "";
+      final.innerHTML = "";
+      campeon.style.display = "none";
+      campeon.textContent = "";
+    }
+  </script>
+
+</body>
+</html>
